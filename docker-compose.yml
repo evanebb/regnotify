@@ -14,7 +14,8 @@ services:
       - "127.0.0.1:8000:8000"
     read_only: true
     volumes:
-      - notifications_db:/etc/regnotify
+      - ./configuration/config-docker.yml:/etc/regnotify/config.yml:ro
+      - events_db:/var/lib/regnotify
 
 volumes:
-  notifications_db: { }
+  events_db: { }

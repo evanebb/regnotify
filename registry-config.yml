@@ -1,7 +1,4 @@
 version: 0.1
-log:
-  fields:
-    service: registry
 storage:
   cache:
     blobdescriptor: inmemory
@@ -9,14 +6,7 @@ storage:
     rootdirectory: /var/lib/registry
 http:
   addr: :5000
-  headers:
-    X-Content-Type-Options: [ nosniff ]
-health:
-  storagedriver:
-    enabled: true
-    interval: 10s
-    threshold: 3
 notifications:
   endpoints:
     - name: listener
-      url: http://regnotify:8000/api/v1/notifications
+      url: http://regnotify:8000/api/v1/events

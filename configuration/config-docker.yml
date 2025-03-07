@@ -1,0 +1,4 @@
+storage:
+  bolt:
+    enabled: true
+    path: /var/lib/regnotify/events.db

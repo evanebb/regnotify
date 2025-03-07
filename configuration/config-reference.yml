@@ -1,0 +1,19 @@
+# Logging configuration
+log:
+  # 'debug', 'info', 'warn' or 'error'. Defaults to 'info'
+  level: info
+  # 'text' or 'json'. Defaults to 'text'
+  formatter: text
+
+# HTTP server configuration
+http:
+  # The address to listen on in 'host:port' format. Defaults to ':80'.
+  addr: ":80"
+  # Path to the TLS certificate/key file to use for HTTPS. If not specified, the server will listen use HTTP.
+  certificate: /path/to/cert.pem
+  key: /path/to/key.pem
+
+storage:
+  bolt:
+    enabled: true
+    path: notifications.db

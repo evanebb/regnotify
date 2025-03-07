@@ -1,1 +1,1 @@
-# registry-notification-server
+# regnotify

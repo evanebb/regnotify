@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/distribution/distribution/v3/notifications"
 	"github.com/evanebb/regnotify/broker"
 	"github.com/evanebb/regnotify/event"
 	"github.com/evanebb/regnotify/server/handlers"
@@ -9,7 +10,7 @@ import (
 	"net/http"
 )
 
-func addRoutes(mux *http.ServeMux, logger *slog.Logger, eventStore event.Store, eventBroker *broker.Broker[event.Event]) {
+func addRoutes(mux *http.ServeMux, logger *slog.Logger, eventStore event.Store, eventBroker *broker.Broker[notifications.Event]) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/distribution/distribution/v3/notifications"
 	"github.com/evanebb/regnotify/broker"
 	"github.com/evanebb/regnotify/configuration"
 	"github.com/evanebb/regnotify/event"
@@ -49,7 +50,7 @@ func Run(ctx context.Context, conf *configuration.Configuration) error {
 		eventStore = nop.NewEventStore()
 	}
 
-	eventBroker := broker.New[event.Event]()
+	eventBroker := broker.New[notifications.Event]()
 	go eventBroker.Start()
 
 	mux := http.NewServeMux()

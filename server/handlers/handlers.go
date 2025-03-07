@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/distribution/distribution/v3/notifications"
 	"github.com/evanebb/regnotify/broker"
 	"github.com/evanebb/regnotify/event"
 	"log/slog"
@@ -11,10 +12,10 @@ import (
 )
 
 type eventEnvelope struct {
-	Events []event.Event `json:"events"`
+	Events []notifications.Event `json:"events"`
 }
 
-func WriteEvents(logger *slog.Logger, store event.Store, broker *broker.Broker[event.Event]) http.HandlerFunc {
+func WriteEvents(logger *slog.Logger, store event.Store, broker *broker.Broker[notifications.Event]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var envelope eventEnvelope
 		if err := json.NewDecoder(r.Body).Decode(&envelope); err != nil {
@@ -63,7 +64,7 @@ func ReadEvents(logger *slog.Logger, store event.Store) http.HandlerFunc {
 	}
 }
 
-func WatchEvents(logger *slog.Logger, broker *broker.Broker[event.Event]) http.HandlerFunc {
+func WatchEvents(logger *slog.Logger, broker *broker.Broker[notifications.Event]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// FIXME: is this necessary?
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -76,7 +77,7 @@ func WatchEvents(logger *slog.Logger, broker *broker.Broker[event.Event]) http.H
 
 		rc := http.NewResponseController(w)
 
-		ch := make(chan event.Event)
+		ch := make(chan notifications.Event)
 		broker.Subscribe(ch)
 
 		for {

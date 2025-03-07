@@ -69,7 +69,7 @@
                 const queryParams = new URLSearchParams({limit: "5"})
 
                 if (this.events.length > 0) {
-                    const offset = this.events.at(-1)["key"]
+                    const offset = this.events.at(-1)["id"]
                     queryParams.set("offset", offset)
                 }
 

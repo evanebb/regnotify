@@ -1,6 +1,7 @@
 package bolt
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/distribution/distribution/v3/notifications"
 	bolt "go.etcd.io/bbolt"
@@ -57,7 +58,7 @@ func (s EventStore) WriteEvents(events []notifications.Event) error {
 	})
 }
 
-func (s EventStore) ReadEvents(offsetID string, limit int) ([]notifications.Event, error) {
+func (s EventStore) ReadEvents(offsetID string, limit int, from time.Time, until time.Time) ([]notifications.Event, error) {
 	events := make([]notifications.Event, 0)
 
 	err := s.db.View(func(tx *bolt.Tx) error {
@@ -73,6 +74,7 @@ func (s EventStore) ReadEvents(offsetID string, limit int) ([]notifications.Even
 			// use the event ID index to get the key for the event
 			offsetKey := eventIndexBucket.Get([]byte(offsetID))
 			c.Seek(offsetKey)
+			// go back one item, since we don't want to include the item with the offset ID key itself
 			k, v = c.Prev()
 		} else {
 			// if no offset is specified, just start at the end
@@ -81,6 +83,16 @@ func (s EventStore) ReadEvents(offsetID string, limit int) ([]notifications.Even
 
 		for ; k != nil; k, v = c.Prev() {
 			if limit > 0 && len(events) >= limit {
+				break
+			}
+
+			if !until.IsZero() && bytes.Compare(k, []byte(until.Format(time.RFC3339))) > 0 {
+				// it would be better to use c.Seek() here, but every seek will reset the cursor to the beginning,
+				// so it can't be combined with the offset ID seek
+				continue
+			}
+
+			if !from.IsZero() && bytes.Compare(k, []byte(from.Format(time.RFC3339))) <= 0 {
 				break
 			}
 

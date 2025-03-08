@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type eventEnvelope struct {
@@ -52,7 +53,29 @@ func ReadEvents(logger *slog.Logger, store event.Store) http.HandlerFunc {
 			}
 		}
 
-		events, err := store.ReadEvents(offset, limit)
+		var from time.Time
+		fromStr := r.URL.Query().Get("from")
+		if fromStr != "" {
+			var err error
+			from, err = time.Parse(time.RFC3339, fromStr)
+			if err != nil {
+				writeJSONResponse(w, http.StatusBadRequest, "invalid 'from' parameter given, must be in RFC3339 format")
+				return
+			}
+		}
+
+		var until time.Time
+		untilStr := r.URL.Query().Get("until")
+		if untilStr != "" {
+			var err error
+			until, err = time.Parse(time.RFC3339, untilStr)
+			if err != nil {
+				writeJSONResponse(w, http.StatusBadRequest, "invalid 'until' parameter given, must be in RFC3339 format")
+				return
+			}
+		}
+
+		events, err := store.ReadEvents(offset, limit, from, until)
 		if err != nil {
 			logger.Error("failed to read events", "error", err)
 			writeJSONResponse(w, http.StatusInternalServerError, "failed to read events")

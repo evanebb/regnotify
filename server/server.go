@@ -8,6 +8,7 @@ import (
 	"github.com/evanebb/regnotify/broker"
 	"github.com/evanebb/regnotify/configuration"
 	"github.com/evanebb/regnotify/event"
+	"github.com/evanebb/regnotify/server/middleware"
 	boltstore "github.com/evanebb/regnotify/store/bolt"
 	"github.com/evanebb/regnotify/store/nop"
 	bolt "go.etcd.io/bbolt"
@@ -56,9 +57,11 @@ func Run(ctx context.Context, conf *configuration.Configuration) error {
 	mux := http.NewServeMux()
 	addRoutes(mux, logger, eventStore, eventBroker)
 
+	loggingMiddleware := middleware.Logger(logger)
+
 	server := &http.Server{
 		Addr:    ":8000",
-		Handler: mux,
+		Handler: loggingMiddleware(mux),
 	}
 
 	go func() {

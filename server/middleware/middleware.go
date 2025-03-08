@@ -7,34 +7,65 @@ import (
 	"time"
 )
 
-type responseWriterWrapper struct {
+type ResponseWriterWrapper interface {
+	http.ResponseWriter
+	Status() int
+}
+
+func NewResponseWriterWrapper(w http.ResponseWriter) ResponseWriterWrapper {
+	_, flushable := w.(http.Flusher)
+
+	basic := basicWriterWrapper{ResponseWriter: w}
+
+	if flushable {
+		return &flushableWriterWrapper{basicWriterWrapper: basic}
+	}
+
+	return &basic
+}
+
+type basicWriterWrapper struct {
 	http.ResponseWriter
 	status      int
 	wroteHeader bool
 }
 
-func newResponseWriterWrapper(w http.ResponseWriter) *responseWriterWrapper {
-	return &responseWriterWrapper{ResponseWriter: w}
+func (w *basicWriterWrapper) Status() int {
+	return w.status
 }
 
-func (rw *responseWriterWrapper) Status() int {
-	return rw.status
-}
-
-func (rw *responseWriterWrapper) WriteHeader(code int) {
-	if !rw.wroteHeader {
-		rw.status = code
-		rw.wroteHeader = true
-		rw.ResponseWriter.WriteHeader(code)
+func (w *basicWriterWrapper) WriteHeader(code int) {
+	if !w.wroteHeader {
+		w.status = code
+		w.wroteHeader = true
+		w.ResponseWriter.WriteHeader(code)
 	}
 }
 
-// LoggerMiddleware will log information about the HTTP request that was made.
-func LoggerMiddleware(l *slog.Logger) func(next http.Handler) http.Handler {
+func (w *basicWriterWrapper) Write(data []byte) (int, error) {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
+
+	return w.ResponseWriter.Write(data)
+}
+
+type flushableWriterWrapper struct {
+	basicWriterWrapper
+}
+
+func (w *flushableWriterWrapper) Flush() {
+	w.wroteHeader = true
+	f := w.basicWriterWrapper.ResponseWriter.(http.Flusher)
+	f.Flush()
+}
+
+// Logger will log information about the HTTP request that was made.
+func Logger(l *slog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-			wrapped := newResponseWriterWrapper(w)
+			wrapped := NewResponseWriterWrapper(w)
 			next.ServeHTTP(wrapped, r)
 
 			scheme := "http"
@@ -51,7 +82,7 @@ func LoggerMiddleware(l *slog.Logger) func(next http.Handler) http.Handler {
 					r.Host,
 					r.URL.EscapedPath(),
 					r.RemoteAddr,
-					wrapped.status,
+					wrapped.Status(),
 					duration,
 				),
 				"method", r.Method,
@@ -59,7 +90,7 @@ func LoggerMiddleware(l *slog.Logger) func(next http.Handler) http.Handler {
 				"host", r.Host,
 				"path", r.URL.EscapedPath(),
 				"remoteAddress", r.RemoteAddr,
-				"status", wrapped.status,
+				"status", wrapped.Status(),
 				"duration", duration,
 			)
 		}

@@ -95,7 +95,7 @@
                 const events = parsed["events"]
                 if (disableLoadMoreIfEmpty && events.length === 0) {
                     this.loadMoreDisabled = true
-                    await new Promise(r => setTimeout(r, 2000));
+                    await new Promise(r => setTimeout(r, 1000));
                     this.loadMoreDisabled = false
                     return
                 }

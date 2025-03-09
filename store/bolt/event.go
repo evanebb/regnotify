@@ -89,6 +89,11 @@ func (s EventStore) ReadEvents(filter event.Filter) ([]notifications.Event, erro
 			}
 		}
 
+		var fromBytes []byte
+		if !filter.From.IsZero() {
+			fromBytes = []byte(filter.From.UTC().Format(time.RFC3339))
+		}
+
 		// read values in reverse order, so we get the newest values first
 		for ; k != nil; k, v = c.Prev() {
 			if filter.Limit > 0 && len(events) >= filter.Limit {
@@ -96,7 +101,7 @@ func (s EventStore) ReadEvents(filter event.Filter) ([]notifications.Event, erro
 			}
 
 			// if we are given a from date, read until we reach it
-			if !filter.From.IsZero() && bytes.Compare(k, []byte(filter.From.UTC().Format(time.RFC3339))) <= 0 {
+			if fromBytes != nil && bytes.Compare(k, fromBytes) <= 0 {
 				break
 			}
 

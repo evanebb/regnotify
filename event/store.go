@@ -5,7 +5,14 @@ import (
 	"time"
 )
 
+type Filter struct {
+	OffsetID string
+	Limit    int
+	From     time.Time
+	Until    time.Time
+}
+
 type Store interface {
 	WriteEvents(events []notifications.Event) error
-	ReadEvents(offsetID string, limit int, from time.Time, until time.Time) ([]notifications.Event, error)
+	ReadEvents(filter Filter) ([]notifications.Event, error)
 }

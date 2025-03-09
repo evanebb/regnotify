@@ -2,7 +2,7 @@ package nop
 
 import (
 	"github.com/distribution/distribution/v3/notifications"
-	"time"
+	"github.com/evanebb/regnotify/event"
 )
 
 type EventStore struct{}
@@ -15,6 +15,6 @@ func (s EventStore) WriteEvents(events []notifications.Event) error {
 	return nil
 }
 
-func (s EventStore) ReadEvents(keyOffset string, limit int, from time.Time, until time.Time) ([]notifications.Event, error) {
+func (s EventStore) ReadEvents(filter event.Filter) ([]notifications.Event, error) {
 	return make([]notifications.Event, 0), nil
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/distribution/distribution/v3/notifications"
+	"github.com/evanebb/regnotify/event"
 	bolt "go.etcd.io/bbolt"
 	"time"
 )
@@ -58,7 +59,7 @@ func (s EventStore) WriteEvents(events []notifications.Event) error {
 	})
 }
 
-func (s EventStore) ReadEvents(offsetID string, limit int, from time.Time, until time.Time) ([]notifications.Event, error) {
+func (s EventStore) ReadEvents(filter event.Filter) ([]notifications.Event, error) {
 	events := make([]notifications.Event, 0)
 
 	err := s.db.View(func(tx *bolt.Tx) error {
@@ -68,17 +69,17 @@ func (s EventStore) ReadEvents(offsetID string, limit int, from time.Time, until
 		c := eventBucket.Cursor()
 
 		k, v := c.Last()
-		if !until.IsZero() {
-			c.Seek([]byte(until.Format(time.RFC3339)))
+		if !filter.Until.IsZero() {
+			c.Seek([]byte(filter.Until.Format(time.RFC3339)))
 			// always go back one in case the exact key doesn't exist, so we do not risk grabbing an event after the
 			// until date
 			k, v = c.Prev()
 		}
 
-		if offsetID != "" {
+		if filter.OffsetID != "" {
 			// if an offset is specified, start from it
 			// use the event ID index to get the key for the event
-			offsetKey := eventIndexBucket.Get([]byte(offsetID))
+			offsetKey := eventIndexBucket.Get([]byte(filter.OffsetID))
 
 			// we should only start from the offset ID if its key is further down in the bucket than the current key
 			if bytes.Compare(offsetKey, k) < 0 {
@@ -90,12 +91,12 @@ func (s EventStore) ReadEvents(offsetID string, limit int, from time.Time, until
 
 		// read values in reverse order, so we get the newest values first
 		for ; k != nil; k, v = c.Prev() {
-			if limit > 0 && len(events) >= limit {
+			if filter.Limit > 0 && len(events) >= filter.Limit {
 				break
 			}
 
 			// if we are given a from date, read until we reach it
-			if !from.IsZero() && bytes.Compare(k, []byte(from.Format(time.RFC3339))) <= 0 {
+			if !filter.From.IsZero() && bytes.Compare(k, []byte(filter.From.Format(time.RFC3339))) <= 0 {
 				break
 			}
 

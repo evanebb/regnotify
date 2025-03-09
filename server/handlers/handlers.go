@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/distribution/distribution/v3/notifications"
 	"github.com/evanebb/regnotify/broker"
@@ -40,42 +41,13 @@ func WriteEvents(logger *slog.Logger, store event.Store, broker *broker.Broker[n
 
 func ReadEvents(logger *slog.Logger, store event.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		offset := r.URL.Query().Get("offset")
-
-		var limit int
-		limitStr := r.URL.Query().Get("limit")
-		if limitStr != "" {
-			var err error
-			limit, err = strconv.Atoi(limitStr)
-			if err != nil {
-				writeJSONResponse(w, http.StatusBadRequest, "invalid 'limit' parameter given")
-				return
-			}
+		filter, err := buildEventFilter(r)
+		if err != nil {
+			writeJSONResponse(w, http.StatusBadRequest, err.Error())
+			return
 		}
 
-		var from time.Time
-		fromStr := r.URL.Query().Get("from")
-		if fromStr != "" {
-			var err error
-			from, err = time.Parse(time.RFC3339, fromStr)
-			if err != nil {
-				writeJSONResponse(w, http.StatusBadRequest, "invalid 'from' parameter given, must be in RFC3339 format")
-				return
-			}
-		}
-
-		var until time.Time
-		untilStr := r.URL.Query().Get("until")
-		if untilStr != "" {
-			var err error
-			until, err = time.Parse(time.RFC3339, untilStr)
-			if err != nil {
-				writeJSONResponse(w, http.StatusBadRequest, "invalid 'until' parameter given, must be in RFC3339 format")
-				return
-			}
-		}
-
-		events, err := store.ReadEvents(offset, limit, from, until)
+		events, err := store.ReadEvents(filter)
 		if err != nil {
 			logger.Error("failed to read events", "error", err)
 			writeJSONResponse(w, http.StatusInternalServerError, "failed to read events")
@@ -85,6 +57,41 @@ func ReadEvents(logger *slog.Logger, store event.Store) http.HandlerFunc {
 		response := eventEnvelope{Events: events}
 		writeJSONResponse(w, http.StatusOK, response)
 	}
+}
+
+func buildEventFilter(r *http.Request) (event.Filter, error) {
+	var filter event.Filter
+
+	filter.OffsetID = r.URL.Query().Get("offset")
+
+	limitStr := r.URL.Query().Get("limit")
+	if limitStr != "" {
+		var err error
+		filter.Limit, err = strconv.Atoi(limitStr)
+		if err != nil {
+			return event.Filter{}, errors.New("invalid 'limit' parameter, must be an integer")
+		}
+	}
+
+	fromStr := r.URL.Query().Get("from")
+	if fromStr != "" {
+		var err error
+		filter.From, err = time.Parse(time.RFC3339, fromStr)
+		if err != nil {
+			return event.Filter{}, errors.New("invalid 'from' parameter, must be a valid RC3339 timestamp")
+		}
+	}
+
+	untilStr := r.URL.Query().Get("until")
+	if untilStr != "" {
+		var err error
+		filter.Until, err = time.Parse(time.RFC3339, untilStr)
+		if err != nil {
+			return event.Filter{}, errors.New("invalid 'until' parameter, must be a valid RC3339 timestamp")
+		}
+	}
+
+	return filter, nil
 }
 
 func WatchEvents(logger *slog.Logger, broker *broker.Broker[notifications.Event]) http.HandlerFunc {

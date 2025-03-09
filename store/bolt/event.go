@@ -39,7 +39,7 @@ func (s EventStore) WriteEvents(events []notifications.Event) error {
 
 		for _, e := range events {
 			// timestamp + ID is the key, so events are stored in chronological order while still having a unique key
-			key := e.Timestamp.Format(time.RFC3339) + e.ID
+			key := e.Timestamp.UTC().Format(time.RFC3339) + e.ID
 
 			encoded, err := json.Marshal(e)
 			if err != nil {
@@ -70,7 +70,7 @@ func (s EventStore) ReadEvents(filter event.Filter) ([]notifications.Event, erro
 
 		k, v := c.Last()
 		if !filter.Until.IsZero() {
-			c.Seek([]byte(filter.Until.Format(time.RFC3339)))
+			c.Seek([]byte(filter.Until.UTC().Format(time.RFC3339)))
 			// always go back one in case the exact key doesn't exist, so we do not risk grabbing an event after the
 			// until date
 			k, v = c.Prev()
@@ -96,7 +96,7 @@ func (s EventStore) ReadEvents(filter event.Filter) ([]notifications.Event, erro
 			}
 
 			// if we are given a from date, read until we reach it
-			if !filter.From.IsZero() && bytes.Compare(k, []byte(filter.From.Format(time.RFC3339))) <= 0 {
+			if !filter.From.IsZero() && bytes.Compare(k, []byte(filter.From.UTC().Format(time.RFC3339))) <= 0 {
 				break
 			}
 

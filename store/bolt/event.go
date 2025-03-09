@@ -67,31 +67,34 @@ func (s EventStore) ReadEvents(offsetID string, limit int, from time.Time, until
 
 		c := eventBucket.Cursor()
 
-		// read values in reverse order, so we get the 'newest' values first
-		var k, v []byte
+		k, v := c.Last()
+		if !until.IsZero() {
+			c.Seek([]byte(until.Format(time.RFC3339)))
+			// always go back one in case the exact key doesn't exist, so we do not risk grabbing an event after the
+			// until date
+			k, v = c.Prev()
+		}
+
 		if offsetID != "" {
 			// if an offset is specified, start from it
 			// use the event ID index to get the key for the event
 			offsetKey := eventIndexBucket.Get([]byte(offsetID))
-			c.Seek(offsetKey)
-			// go back one item, since we don't want to include the item with the offset ID key itself
-			k, v = c.Prev()
-		} else {
-			// if no offset is specified, just start at the end
-			k, v = c.Last()
+
+			// we should only start from the offset ID if its key is further down in the bucket than the current key
+			if bytes.Compare(offsetKey, k) < 0 {
+				c.Seek(offsetKey)
+				// go back one item, since we don't want to include the item with the offset ID key itself
+				k, v = c.Prev()
+			}
 		}
 
+		// read values in reverse order, so we get the newest values first
 		for ; k != nil; k, v = c.Prev() {
 			if limit > 0 && len(events) >= limit {
 				break
 			}
 
-			if !until.IsZero() && bytes.Compare(k, []byte(until.Format(time.RFC3339))) > 0 {
-				// it would be better to use c.Seek() here, but every seek will reset the cursor to the beginning,
-				// so it can't be combined with the offset ID seek
-				continue
-			}
-
+			// if we are given a from data, read until we reach it
 			if !from.IsZero() && bytes.Compare(k, []byte(from.Format(time.RFC3339))) <= 0 {
 				break
 			}

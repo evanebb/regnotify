@@ -27,6 +27,18 @@
 <body class="container">
 <div x-data="events" class="d-flex flex-column gap-2 my-3">
     <h1 class="mx-auto">Registry events</h1>
+    <div class="d-flex gap-2 mb-2">
+        <div class="input-group">
+            <label for="from" class="input-group-text">From</label>
+            <input id="from" type="datetime-local" x-model="from" class="form-control">
+        </div>
+        <div class="input-group">
+            <label for="until" class="input-group-text">Until</label>
+            <input id="until" type="datetime-local" x-model="until" class="form-control">
+        </div>
+        <button @click="search" class="btn btn-primary"><span class="text-nowrap">Search<i
+                class="bi bi-search ms-2"></i></span></button>
+    </div>
     <template x-if="events.length === 0">
         <div class="d-flex justify-content-center">
             <p class="fs-4 fw-medium">No events found.</p>
@@ -58,12 +70,7 @@
         Alpine.data('events', () => ({
             async init() {
                 await this.loadMore(false)
-
-                const eventSource = new EventSource("/api/v1/events/watch")
-
-                eventSource.onmessage = (event) => {
-                    this.events.unshift(JSON.parse(event.data))
-                }
+                this.openEventSource()
             },
             async loadMore(disableLoadMoreIfEmpty = true) {
                 const queryParams = new URLSearchParams({limit: "5"})
@@ -71,6 +78,16 @@
                 if (this.events.length > 0) {
                     const offset = this.events.at(-1)["id"]
                     queryParams.set("offset", offset)
+                }
+
+                if (this.from) {
+                    const from = new Date(this.from).toISOString()
+                    queryParams.set("from", from)
+                }
+
+                if (this.until) {
+                    const until = new Date(this.until).toISOString()
+                    queryParams.set("until", until)
                 }
 
                 const response = await fetch("/api/v1/events?" + queryParams.toString())
@@ -84,9 +101,39 @@
                 }
 
                 this.events.push(...events)
+                this.openEventSource()
+            },
+            search() {
+                this.events = [];
+                this.loadMore(false);
+            },
+            openEventSource() {
+                const queryParams = new URLSearchParams()
+
+                if (this.from) {
+                    const from = new Date(this.from).toISOString()
+                    queryParams.set("from", from)
+                }
+
+                if (this.until) {
+                    const until = new Date(this.until).toISOString()
+                    queryParams.set("until", until)
+                }
+
+                if (this.eventSource) {
+                    this.eventSource.close()
+                }
+
+                this.eventSource = new EventSource("/api/v1/events/watch?" + queryParams.toString())
+                this.eventSource.onmessage = (event) => {
+                    this.events.unshift(JSON.parse(event.data))
+                }
             },
             events: [],
             loadMoreDisabled: false,
+            from: "",
+            until: "",
+            eventSource: null,
         }))
     })
 </script>

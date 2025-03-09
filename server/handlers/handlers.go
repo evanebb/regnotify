@@ -110,12 +110,28 @@ func WatchEvents(logger *slog.Logger, broker *broker.Broker[notifications.Event]
 		ch := make(chan notifications.Event)
 		broker.Subscribe(ch)
 
+		filter, err := buildEventFilter(r)
+		if err != nil {
+			writeJSONResponse(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
 		for {
 			select {
 			case <-clientDisconnect:
 				broker.Unsubscribe(ch)
 				return
 			case e := <-ch:
+				if !filter.From.IsZero() && filter.From.After(e.Timestamp) {
+					// no sense in checking this, since the timestamp of new events should always be right now, but
+					// just check it
+					continue
+				}
+
+				if !filter.Until.IsZero() && filter.Until.Before(e.Timestamp) {
+					continue
+				}
+
 				encoded, err := json.Marshal(e)
 				if err != nil {
 					logger.Error("failed to encode event", "error", err)

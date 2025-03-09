@@ -94,7 +94,7 @@ func (s EventStore) ReadEvents(offsetID string, limit int, from time.Time, until
 				break
 			}
 
-			// if we are given a from data, read until we reach it
+			// if we are given a from date, read until we reach it
 			if !from.IsZero() && bytes.Compare(k, []byte(from.Format(time.RFC3339))) <= 0 {
 				break
 			}

@@ -24,48 +24,76 @@
         })
     </script>
 </head>
-<body class="container">
-<div x-data="events" class="d-flex flex-column gap-2 my-3">
-    <h1 class="mx-auto">Registry events</h1>
-    <div class="d-flex gap-2 mb-2">
-        <div class="input-group">
-            <label for="from" class="input-group-text">From</label>
-            <input id="from" type="datetime-local" x-model="from" class="form-control">
-        </div>
-        <div class="input-group">
-            <label for="until" class="input-group-text">Until</label>
-            <input id="until" type="datetime-local" x-model="until" class="form-control">
-        </div>
-        <button @click="search" class="btn btn-primary"><span class="text-nowrap">Search<i
-                class="bi bi-search ms-2"></i></span></button>
-    </div>
-    <template x-if="events.length === 0">
-        <div class="d-flex justify-content-center">
-            <p class="fs-4 fw-medium">No events found.</p>
-        </div>
-    </template>
-    <template x-for="event in events" :key="event.id">
-        <div class="card" x-data="{ open: false }">
-            <div class="card-body d-flex justify-content-between">
-                <div class="d-flex flex-column">
-                    <span class="fw-medium" x-text="new Date(event.timestamp).toLocaleString()"></span>
-                    <span><span x-text="event.action"></span> <span
-                            x-text="event.target.repository"></span></span>
+<body>
+<div class="position-relative">
+    <div id="toast-container" x-data="toasts" @toast.window="add($event.detail)"
+         class="toast-container top-0 end-0 p-2">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div class="toast fade show" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header">
+                    <strong x-text="toast.title" class="me-auto"></strong>
+                    <button @click="remove(toast.id)" type="button" class="btn-close" data-bs-dismiss="toast"
+                            aria-label="Close"></button>
                 </div>
-                <button @click="open = ! open" class="btn btn-primary">Show info</button>
+                <div x-text="toast.message" class="toast-body"></div>
             </div>
-            <div x-show="open" x-transition>
-                <hr>
-                <pre class="px-3"><code x-text="JSON.stringify(event, null, 2)"></code></pre>
-            </div>
-        </div>
-    </template>
-    <div class="d-flex justify-content-center mt-2">
-        <button @click="loadMore" :disabled="loadMoreDisabled"
-                x-text="loadMoreDisabled ? 'No more events to load...' : 'Load more'" class="btn btn-primary"></button>
+        </template>
     </div>
 </div>
+<main class="container">
+    <div x-data="events" class="d-flex flex-column gap-2 my-3">
+        <h1 class="mx-auto">Registry events</h1>
+        <div class="d-flex gap-2 mb-2">
+            <div class="input-group">
+                <label for="from" class="input-group-text">From</label>
+                <input id="from" type="datetime-local" x-model="from" class="form-control">
+            </div>
+            <div class="input-group">
+                <label for="until" class="input-group-text">Until</label>
+                <input id="until" type="datetime-local" x-model="until" class="form-control">
+            </div>
+            <button @click="search" class="btn btn-primary"><span class="text-nowrap">Search<i
+                    class="bi bi-search ms-2"></i></span></button>
+        </div>
+        <template x-if="events.length === 0">
+            <div class="d-flex justify-content-center">
+                <p class="fs-4 fw-medium">No events found.</p>
+            </div>
+        </template>
+        <template x-for="event in events" :key="event.id">
+            <div class="card" x-data="{ open: false }">
+                <div class="card-body d-flex justify-content-between">
+                    <div class="d-flex flex-column">
+                        <span class="fw-medium" x-text="new Date(event.timestamp).toLocaleString()"></span>
+                        <span><span x-text="event.action"></span> <span
+                                x-text="event.target.repository"></span></span>
+                    </div>
+                    <button @click="open = ! open" class="btn btn-primary">Show info</button>
+                </div>
+                <div x-show="open" x-transition>
+                    <hr>
+                    <pre class="px-3"><code x-text="JSON.stringify(event, null, 2)"></code></pre>
+                </div>
+            </div>
+        </template>
+        <div class="d-flex justify-content-center mt-2">
+            <button @click="loadMore" :disabled="loadMoreDisabled"
+                    x-text="loadMoreDisabled ? 'No more events to load...' : 'Load more'"
+                    class="btn btn-primary"></button>
+        </div>
+    </div>
+</main>
 <script>
+    function addToast(title, message) {
+        document.getElementById('toast-container').dispatchEvent(new CustomEvent('toast', {
+            detail: {
+                title: title,
+                message: message,
+            },
+            bubbles: true
+        }))
+    }
+
     document.addEventListener('alpine:init', () => {
         Alpine.data('events', () => ({
             async init() {
@@ -92,11 +120,25 @@
 
                 const response = await fetch("/api/v1/events?" + queryParams.toString())
                 const parsed = await response.json()
-                const events = parsed["events"]
+
+                // Handle a well-formed API error response
+                if (parsed["status"] === "error") {
+                    addToast("Error", parsed["message"])
+                    return
+                }
+
+                // Handle any other error response just in case something is really wrong
+                if (response.status < 200 || response.status > 399) {
+                    addToast("Error", "Unknown error occurred")
+                    return
+                }
+
+                const events = parsed["data"]["events"]
                 if (disableLoadMoreIfEmpty && events.length === 0) {
                     this.loadMoreDisabled = true
-                    await new Promise(r => setTimeout(r, 1000));
-                    this.loadMoreDisabled = false
+                    setTimeout(() => {
+                        this.loadMoreDisabled = false
+                    }, 1000)
                     return
                 }
 
@@ -134,6 +176,21 @@
             from: "",
             until: "",
             eventSource: null,
+        }))
+
+        Alpine.data('toasts', () => ({
+            toasts: [],
+            add(toast) {
+                toast.id = (Math.random() + 1).toString(36).substring(7)
+                this.toasts.push(toast)
+
+                setTimeout(() => {
+                    this.remove(toast.id)
+                }, 3000)
+            },
+            remove(id) {
+                this.toasts = this.toasts.filter(t => t.id !== id)
+            }
         }))
     })
 </script>

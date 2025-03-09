@@ -21,13 +21,13 @@ func WriteEvents(logger *slog.Logger, store event.Store, broker *broker.Broker[n
 	return func(w http.ResponseWriter, r *http.Request) {
 		var envelope eventEnvelope
 		if err := json.NewDecoder(r.Body).Decode(&envelope); err != nil {
-			writeJSONResponse(w, http.StatusBadRequest, "invalid JSON body given")
+			writeJSONError(w, http.StatusBadRequest, "invalid JSON body given")
 			return
 		}
 
 		if err := store.WriteEvents(envelope.Events); err != nil {
 			logger.Error("failed to write events", "error", err)
-			writeJSONResponse(w, http.StatusInternalServerError, "failed to write events")
+			writeJSONError(w, http.StatusInternalServerError, "failed to write events")
 			return
 		}
 
@@ -35,7 +35,7 @@ func WriteEvents(logger *slog.Logger, store event.Store, broker *broker.Broker[n
 			broker.Publish(e)
 		}
 
-		writeJSONResponse(w, http.StatusOK, "successfully wrote events")
+		writeJSONSuccess(w, http.StatusOK, "successfully wrote events")
 	}
 }
 
@@ -43,19 +43,19 @@ func ReadEvents(logger *slog.Logger, store event.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		filter, err := buildEventFilter(r)
 		if err != nil {
-			writeJSONResponse(w, http.StatusBadRequest, err.Error())
+			writeJSONError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 
 		events, err := store.ReadEvents(filter)
 		if err != nil {
 			logger.Error("failed to read events", "error", err)
-			writeJSONResponse(w, http.StatusInternalServerError, "failed to read events")
+			writeJSONError(w, http.StatusInternalServerError, "failed to read events")
 			return
 		}
 
 		response := eventEnvelope{Events: events}
-		writeJSONResponse(w, http.StatusOK, response)
+		writeJSONSuccess(w, http.StatusOK, response)
 	}
 }
 
@@ -112,7 +112,7 @@ func WatchEvents(logger *slog.Logger, broker *broker.Broker[notifications.Event]
 
 		filter, err := buildEventFilter(r)
 		if err != nil {
-			writeJSONResponse(w, http.StatusBadRequest, err.Error())
+			writeJSONError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 

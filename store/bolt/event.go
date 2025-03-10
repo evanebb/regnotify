@@ -90,10 +90,14 @@ func (s EventStore) ReadEvents(filter event.Filter) ([]notifications.Event, erro
 			// use the event ID index to get the key for the event
 			offsetKey := eventIndexBucket.Get([]byte(filter.OffsetID))
 
-			// we should only start from the offset ID if its key is further down in the bucket than the current key
-			if bytes.Compare(offsetKey, k) < 0 {
+			keyComparison := bytes.Compare(offsetKey, k)
+			if keyComparison < 0 {
+				// we should only start from the offset ID if its key is further down in the bucket than the current key
 				c.Seek(offsetKey)
+			}
+			if keyComparison <= 0 {
 				// go back one item, since we don't want to include the item with the offset ID key itself
+				// also do this if the offset is the current key
 				k, v = c.Prev()
 			}
 		}

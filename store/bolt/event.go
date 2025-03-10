@@ -19,7 +19,12 @@ func NewEventStore(db *bolt.DB) (EventStore, error) {
 			return err
 		}
 
-		if _, err := tx.CreateBucketIfNotExists([]byte("events_id_index")); err != nil {
+		eventIndexRoot, err := tx.CreateBucketIfNotExists([]byte("events_index"))
+		if err != nil {
+			return err
+		}
+
+		if _, err := eventIndexRoot.CreateBucketIfNotExists([]byte("id")); err != nil {
 			return err
 		}
 
@@ -42,8 +47,9 @@ func i64tob(v int64) []byte {
 
 func (s EventStore) WriteEvents(events []notifications.Event) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
-		eventBucket := tx.Bucket([]byte("events"))
-		eventIndexBucket := tx.Bucket([]byte("events_id_index"))
+		bucket := tx.Bucket([]byte("events"))
+		eventIndexRoot := tx.Bucket([]byte("events_index"))
+		idIndexBucket := eventIndexRoot.Bucket([]byte("id"))
 
 		for _, e := range events {
 			// timestamp + ID is the key, so events are stored in chronological order while still having a unique key
@@ -55,11 +61,11 @@ func (s EventStore) WriteEvents(events []notifications.Event) error {
 				return err
 			}
 
-			if err := eventBucket.Put(key, encoded); err != nil {
+			if err := bucket.Put(key, encoded); err != nil {
 				return err
 			}
 
-			if err := eventIndexBucket.Put([]byte(e.ID), key); err != nil {
+			if err := idIndexBucket.Put([]byte(e.ID), key); err != nil {
 				return err
 			}
 		}
@@ -72,10 +78,11 @@ func (s EventStore) ReadEvents(filter event.Filter) ([]notifications.Event, erro
 	events := make([]notifications.Event, 0)
 
 	err := s.db.View(func(tx *bolt.Tx) error {
-		eventBucket := tx.Bucket([]byte("events"))
-		eventIndexBucket := tx.Bucket([]byte("events_id_index"))
+		bucket := tx.Bucket([]byte("events"))
+		eventIndexRoot := tx.Bucket([]byte("events_index"))
+		idIndexBucket := eventIndexRoot.Bucket([]byte("id"))
 
-		c := eventBucket.Cursor()
+		c := bucket.Cursor()
 
 		k, v := c.Last()
 		if !filter.Until.IsZero() {
@@ -88,7 +95,7 @@ func (s EventStore) ReadEvents(filter event.Filter) ([]notifications.Event, erro
 		if filter.OffsetID != "" {
 			// if an offset is specified, start from it
 			// use the event ID index to get the key for the event
-			offsetKey := eventIndexBucket.Get([]byte(filter.OffsetID))
+			offsetKey := idIndexBucket.Get([]byte(filter.OffsetID))
 
 			keyComparison := bytes.Compare(offsetKey, k)
 			if keyComparison < 0 {

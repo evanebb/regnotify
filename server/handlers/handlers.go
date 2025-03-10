@@ -99,9 +99,6 @@ func buildEventFilter(r *http.Request) (event.Filter, error) {
 
 func WatchEvents(logger *slog.Logger, broker *broker.Broker[notifications.Event]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// FIXME: is this necessary?
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Connection", "keep-alive")

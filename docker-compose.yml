@@ -2,7 +2,7 @@ services:
   registry:
     image: registry:3.0.0-rc.3
     ports:
-      - "127.0.0.1:5000:5000"
+      - "5000:5000"
     volumes:
       - ./registry-config.yml:/etc/distribution/config.yml:ro
     environment:
@@ -11,7 +11,7 @@ services:
   regnotify:
     image: localhost/evanebb/regnotify:latest
     ports:
-      - "127.0.0.1:8000:8000"
+      - "8000:8000"
     read_only: true
     volumes:
       - ./configuration/config-docker.yml:/etc/regnotify/config.yml:ro

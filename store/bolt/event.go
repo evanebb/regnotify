@@ -2,11 +2,11 @@ package bolt
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"github.com/distribution/distribution/v3/notifications"
 	"github.com/evanebb/regnotify/event"
 	bolt "go.etcd.io/bbolt"
-	"time"
 )
 
 type EventStore struct {
@@ -32,6 +32,14 @@ func NewEventStore(db *bolt.DB) (EventStore, error) {
 	return EventStore{db: db}, nil
 }
 
+// i64tob returns an 8-byte big endian representation of v.
+// Credit to https://github.com/golang/go/issues/19635#issuecomment-384448277
+func i64tob(v int64) []byte {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(v))
+	return b
+}
+
 func (s EventStore) WriteEvents(events []notifications.Event) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		eventBucket := tx.Bucket([]byte("events"))
@@ -39,18 +47,19 @@ func (s EventStore) WriteEvents(events []notifications.Event) error {
 
 		for _, e := range events {
 			// timestamp + ID is the key, so events are stored in chronological order while still having a unique key
-			key := e.Timestamp.UTC().Format(time.RFC3339) + e.ID
+			unixTime := e.Timestamp.UTC().UnixNano()
+			key := append(i64tob(unixTime), []byte(e.ID)...)
 
 			encoded, err := json.Marshal(e)
 			if err != nil {
 				return err
 			}
 
-			if err := eventBucket.Put([]byte(key), encoded); err != nil {
+			if err := eventBucket.Put(key, encoded); err != nil {
 				return err
 			}
 
-			if err := eventIndexBucket.Put([]byte(e.ID), []byte(key)); err != nil {
+			if err := eventIndexBucket.Put([]byte(e.ID), key); err != nil {
 				return err
 			}
 		}
@@ -70,7 +79,7 @@ func (s EventStore) ReadEvents(filter event.Filter) ([]notifications.Event, erro
 
 		k, v := c.Last()
 		if !filter.Until.IsZero() {
-			c.Seek([]byte(filter.Until.UTC().Format(time.RFC3339)))
+			c.Seek(i64tob(filter.Until.UTC().UnixNano()))
 			// always go back one in case the exact key doesn't exist, so we do not risk grabbing an event after the
 			// until date
 			k, v = c.Prev()
@@ -91,7 +100,7 @@ func (s EventStore) ReadEvents(filter event.Filter) ([]notifications.Event, erro
 
 		var fromBytes []byte
 		if !filter.From.IsZero() {
-			fromBytes = []byte(filter.From.UTC().Format(time.RFC3339))
+			fromBytes = i64tob(filter.From.UTC().UnixNano())
 		}
 
 		var searchQueryBytes []byte

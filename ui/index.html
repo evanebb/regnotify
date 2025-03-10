@@ -52,6 +52,10 @@
                 <label for="until" class="input-group-text">Until</label>
                 <input id="until" type="datetime-local" x-model="until" class="form-control">
             </div>
+            <div class="input-group">
+                <label for="searchQuery" class="input-group-text">Search query</label>
+                <input id="searchQuery" type="text" x-model="searchQuery" @keyup.enter="search" class="form-control">
+            </div>
             <button @click="search" class="btn btn-primary"><span class="text-nowrap">Search<i
                     class="bi bi-search ms-2"></i></span></button>
         </div>
@@ -118,6 +122,10 @@
                     queryParams.set("until", until)
                 }
 
+                if (this.searchQuery) {
+                    queryParams.set("searchQuery", this.searchQuery)
+                }
+
                 const response = await fetch("/api/v1/events?" + queryParams.toString())
                 const parsed = await response.json()
 
@@ -162,6 +170,10 @@
                     queryParams.set("until", until)
                 }
 
+                if (this.searchQuery) {
+                    queryParams.set("searchQuery", this.searchQuery)
+                }
+
                 if (this.eventSource) {
                     this.eventSource.close()
                 }
@@ -175,6 +187,7 @@
             loadMoreDisabled: false,
             from: "",
             until: "",
+            searchQuery: "",
             eventSource: null,
         }))
 

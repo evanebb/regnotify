@@ -6,10 +6,11 @@ import (
 )
 
 type Filter struct {
-	OffsetID string
-	Limit    int
-	From     time.Time
-	Until    time.Time
+	OffsetID    string
+	Limit       int
+	From        time.Time
+	Until       time.Time
+	SearchQuery string
 }
 
 type Store interface {

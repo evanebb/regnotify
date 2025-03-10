@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -91,6 +92,8 @@ func buildEventFilter(r *http.Request) (event.Filter, error) {
 		}
 	}
 
+	filter.SearchQuery = r.URL.Query().Get("searchQuery")
+
 	return filter, nil
 }
 
@@ -136,6 +139,10 @@ func WatchEvents(logger *slog.Logger, broker *broker.Broker[notifications.Event]
 				if err != nil {
 					logger.Error("failed to encode event", "error", err)
 					return
+				}
+
+				if filter.SearchQuery != "" && !bytes.Contains(encoded, []byte(filter.SearchQuery)) {
+					continue
 				}
 
 				if _, err := fmt.Fprintf(w, "data: %s\n\n", encoded); err != nil {

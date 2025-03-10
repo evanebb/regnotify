@@ -94,6 +94,11 @@ func (s EventStore) ReadEvents(filter event.Filter) ([]notifications.Event, erro
 			fromBytes = []byte(filter.From.UTC().Format(time.RFC3339))
 		}
 
+		var searchQueryBytes []byte
+		if filter.SearchQuery != "" {
+			searchQueryBytes = []byte(filter.SearchQuery)
+		}
+
 		// read values in reverse order, so we get the newest values first
 		for ; k != nil; k, v = c.Prev() {
 			if filter.Limit > 0 && len(events) >= filter.Limit {
@@ -103,6 +108,14 @@ func (s EventStore) ReadEvents(filter event.Filter) ([]notifications.Event, erro
 			// if we are given a from date, read until we reach it
 			if fromBytes != nil && bytes.Compare(k, fromBytes) <= 0 {
 				break
+			}
+
+			// brute-force search the JSON for the given query
+			// note: this isn't ideal and can be very slow if we have a lot of events. filtering on specific (indexed)
+			// fields like the repository name or implementing some kind of proper full-text search would be better, but
+			// it works fine for now, especially if you 'pre-filter' it a bit using a time range
+			if searchQueryBytes != nil && !bytes.Contains(v, searchQueryBytes) {
+				continue
 			}
 
 			var e notifications.Event

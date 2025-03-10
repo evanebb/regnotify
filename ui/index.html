@@ -43,32 +43,29 @@
 <main class="container">
     <div x-data="events" class="d-flex flex-column gap-2 my-3">
         <h1 class="mx-auto">Registry events</h1>
-        <div class="card mb-2">
-            <div class="card-body">
-                <h5 class="card-title mb-3">Filters</h5>
-                <hr>
-                <div class="row mb-2">
-                    <div class="col input-group">
-                        <label for="from" class="input-group-text">From</label>
-                        <input id="from" type="datetime-local" x-model="from" class="form-control">
-                    </div>
-                    <div class="col input-group">
-                        <label for="until" class="input-group-text">Until</label>
-                        <input id="until" type="datetime-local" x-model="until" class="form-control">
-                    </div>
+        <div class="card card-body mb-2">
+            <h5 class="card-title mb-3">Filters</h5>
+            <div class="row">
+                <div class="col input-group mb-2">
+                    <label for="from" class="input-group-text">From</label>
+                    <input id="from" type="datetime-local" x-model="from" @keyup.enter="search" class="form-control">
                 </div>
-                <div class="row mb-3">
-                    <div class="col input-group">
-                        <label for="searchQuery" class="input-group-text">Search query</label>
-                        <input id="searchQuery" type="text" x-model="searchQuery" @keyup.enter="search"
-                               class="form-control">
-                    </div>
+                <div class="col input-group mb-2">
+                    <label for="until" class="input-group-text">Until</label>
+                    <input id="until" type="datetime-local" x-model="until" @keyup.enter="search" class="form-control">
                 </div>
-                <div class="row">
-                    <div class="col d-flex justify-content-center">
-                        <button @click="search" class="btn btn-primary"><span class="text-nowrap">Filter<i
-                                class="bi bi-filter ms-2"></i></span></button>
-                    </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col input-group">
+                    <label for="searchQuery" class="input-group-text">Search query</label>
+                    <input id="searchQuery" type="text" x-model="searchQuery" @keyup.enter="search"
+                           class="form-control">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col d-flex justify-content-center">
+                    <button @click="search" class="btn btn-primary"><span class="text-nowrap">Filter<i
+                            class="bi bi-filter ms-2"></i></span></button>
                 </div>
             </div>
         </div>
@@ -87,7 +84,7 @@
                     </div>
                     <button @click="open = ! open" class="btn btn-primary">Show info</button>
                 </div>
-                <div x-show="open" x-transition>
+                <div x-show="open">
                     <hr>
                     <pre class="px-3"><code x-text="JSON.stringify(event, null, 2)"></code></pre>
                 </div>
@@ -118,7 +115,7 @@
                 this.openEventSource()
             },
             async loadMore(disableLoadMoreIfEmpty = true) {
-                const queryParams = new URLSearchParams({limit: "5"})
+                const queryParams = new URLSearchParams({limit: "10"})
 
                 if (this.events.length > 0) {
                     const offset = this.events.at(-1)["id"]

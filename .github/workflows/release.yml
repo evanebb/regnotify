@@ -1,0 +1,37 @@
+name: Build and upload binaries on release
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        goos: [ linux, darwin ]
+        goarch: [ amd64, arm64 ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build
+        run: go build -o ./bin/regnotify-$GOOS-$GOARCH ./cmd/regnotify
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+
+      - name: Upload binaries to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run:
+          gh release upload ${{ github.event.release.tag_name }} bin/regnotify-$GOOS-$GOARCH

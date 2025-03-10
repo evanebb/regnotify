@@ -43,21 +43,34 @@
 <main class="container">
     <div x-data="events" class="d-flex flex-column gap-2 my-3">
         <h1 class="mx-auto">Registry events</h1>
-        <div class="d-flex gap-2 mb-2">
-            <div class="input-group">
-                <label for="from" class="input-group-text">From</label>
-                <input id="from" type="datetime-local" x-model="from" class="form-control">
+        <div class="card mb-2">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Filters</h5>
+                <hr>
+                <div class="row mb-2">
+                    <div class="col input-group">
+                        <label for="from" class="input-group-text">From</label>
+                        <input id="from" type="datetime-local" x-model="from" class="form-control">
+                    </div>
+                    <div class="col input-group">
+                        <label for="until" class="input-group-text">Until</label>
+                        <input id="until" type="datetime-local" x-model="until" class="form-control">
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col input-group">
+                        <label for="searchQuery" class="input-group-text">Search query</label>
+                        <input id="searchQuery" type="text" x-model="searchQuery" @keyup.enter="search"
+                               class="form-control">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col d-flex justify-content-center">
+                        <button @click="search" class="btn btn-primary"><span class="text-nowrap">Filter<i
+                                class="bi bi-filter ms-2"></i></span></button>
+                    </div>
+                </div>
             </div>
-            <div class="input-group">
-                <label for="until" class="input-group-text">Until</label>
-                <input id="until" type="datetime-local" x-model="until" class="form-control">
-            </div>
-            <div class="input-group">
-                <label for="searchQuery" class="input-group-text">Search query</label>
-                <input id="searchQuery" type="text" x-model="searchQuery" @keyup.enter="search" class="form-control">
-            </div>
-            <button @click="search" class="btn btn-primary"><span class="text-nowrap">Search<i
-                    class="bi bi-search ms-2"></i></span></button>
         </div>
         <template x-if="events.length === 0">
             <div class="d-flex justify-content-center">

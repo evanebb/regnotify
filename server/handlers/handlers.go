@@ -36,7 +36,7 @@ func WriteEvents(logger *slog.Logger, store event.Store, broker *broker.Broker[n
 			broker.Publish(e)
 		}
 
-		writeJSONSuccess(w, http.StatusOK, "successfully wrote events")
+		writeJSONSuccess(w, http.StatusOK, nil, "successfully wrote events")
 	}
 }
 
@@ -56,7 +56,7 @@ func ReadEvents(logger *slog.Logger, store event.Store) http.HandlerFunc {
 		}
 
 		response := eventEnvelope{Events: events}
-		writeJSONSuccess(w, http.StatusOK, response)
+		writeJSONSuccess(w, http.StatusOK, response, "successfully read events")
 	}
 }
 

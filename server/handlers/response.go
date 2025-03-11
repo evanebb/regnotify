@@ -7,14 +7,15 @@ import (
 
 type responseEnvelope struct {
 	Status  string `json:"status"`
-	Data    any    `json:"data,omitempty"`
-	Message string `json:"message,omitempty"`
+	Data    any    `json:"data"`
+	Message string `json:"message"`
 }
 
-func writeJSONSuccess(w http.ResponseWriter, statusCode int, v any) {
+func writeJSONSuccess(w http.ResponseWriter, statusCode int, v any, message string) {
 	writeJSONResponse(w, statusCode, responseEnvelope{
-		Status: "success",
-		Data:   v,
+		Status:  "success",
+		Data:    v,
+		Message: message,
 	})
 }
 

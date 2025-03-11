@@ -3,13 +3,14 @@ A simple application to handle and store [notifications sent by the distribution
 
 ![The web interface](screenshots/web-ui.png)
 
-- A rudimentary web UI and API to view/filter events.
+- Simple web interface written with [Alpine](https://alpinejs.dev/) and [Bootstrap](https://getbootstrap.com/).
+- Small JSON API to write/read/listen for events. Documentation can be found at [api/openapi.yaml](api/openapi.yaml).
 - Uses [Bolt](https://github.com/etcd-io/bbolt) as the back-end storage for events.
 - Utilizes Server-Sent Events to stream new events to your browser as they come in.
 
 # Deployment
 ## Quick deployment using Docker Compose
-For a quick 'batteries-included' setup including the registry itself, take a look at the [`docker-compose.yml`](docker-compose.yml) in this repository.  
+For a quick 'batteries-included' setup including the registry itself, take a look at the [docker-compose.yml](docker-compose.yml) in this repository.  
 To deploy it, run the following:
 ```shell
 git clone https://github.com/evanebb/regnotify.git
@@ -26,7 +27,7 @@ This application is shipped as a container image, available at `ghcr.io/evanebb/
 
 For example, to run it using Docker, use the following command:
 ```shell
-docker run --name regnotify -d -p 8000:8000 ghcr.io/evanebb/regnotify
+docker run --name regnotify -d -p 8000:8000 -v regnotify_db_data:/var/lib/regnotify ghcr.io/evanebb/regnotify
 ```
 
 It can now be accessed at `http://localhost:8000` or `http://<host-ip>:8000`.

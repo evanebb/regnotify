@@ -1,0 +1,158 @@
+openapi: 3.1.0
+info:
+  title: Regnotify
+  description: Regnotify events API
+  version: 0.0.1
+servers:
+  - url: 'https://{server}/api/v1'
+    variables:
+      server:
+        default: localhost:8000
+paths:
+  /events:
+    get:
+      summary: "Read events"
+      parameters:
+        - in: path
+          name: offset
+          schema:
+            type: string
+          required: false
+          description: "Offset ID from which to start when retrieving the events, corresponds to the 'id' field in each event. Mostly useful in combination with the 'limit' parameter, in order to iterate through the events in chunks."
+        - in: path
+          name: limit
+          schema:
+            type: integer
+          required: false
+          description: "The amount of events to retrieve. Mostly useful in combination with the 'offset' parameter, in order to iterate through the events in chunks."
+        - in: path
+          name: from
+          schema:
+            type: string
+            format: date-time
+          required: false
+          description: "RFC3339 timestamp used to filter out all events that occurred before this point in time."
+        - in: path
+          name: until
+          schema:
+            type: string
+            format: date-time
+          required: false
+          description: "RFC3339 timestamp used to filter out all events that occurred after this point in time."
+        - in: path
+          name: searchQuery
+          schema:
+            type: string
+          required: false
+          description: "Search query against which the event data will be matched. Only events matching this query will be returned."
+      responses:
+        200:
+          description: "Successfully read events"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    $ref: "#/components/schemas/EventEnvelope"
+                  message:
+                    type: string
+                    example: "successfully read events"
+    post:
+      summary: "Write new events"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventEnvelope"
+      responses:
+        200:
+          description: "Successfully wrote events"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: "null"
+                  message:
+                    type: string
+                    example: "successfully wrote events"
+  /events/watch:
+    get:
+      summary: "Stream events using SSE"
+      description: "Streams new events to the client using Server-Sent Events."
+      parameters:
+        - in: path
+          name: from
+          schema:
+            type: string
+            format: date-time
+          required: false
+          description: "RFC3339 timestamp used to filter out all events that occurred before this point in time."
+        - in: path
+          name: until
+          schema:
+            type: string
+            format: date-time
+          required: false
+          description: "RFC3339 timestamp used to filter out all events that occurred after this point in time."
+        - in: path
+          name: searchQuery
+          schema:
+            type: string
+          required: false
+          description: "Search query against which the event data will be matched. Only events matching this query will be streamed."
+      responses:
+        200:
+          description: "Stream of new events"
+          content:
+            text/event-stream:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Event"
+components:
+  schemas:
+    Event:
+      type: object
+      description: "Represents a single registry event. The schema is a direct passthrough of the upstream event schema, which can be found at https://distribution.github.io/distribution/about/notifications/#events."
+      example:
+        id: 34278945-5fad-4479-935d-49ca1351a845
+        timestamp: 2025-03-10T20:59:45.791807294Z
+        action: push
+        target:
+          mediaType: application/vnd.oci.image.manifest.v1+json
+          digest: sha256:9f4cd29d2351d0cb0c674f83e19fd9a06d2ee4ad053a6c12df48607a4e7eb911
+          size: 1923
+          length: 1923
+          repository: golang
+          url: http://localhost:5000/v2/golang/manifests/sha256:9f4cd29d2351d0cb0c674f83e19fd9a06d2ee4ad053a6c12df48607a4e7eb911
+          tag: 1.24.0-alpine
+        request:
+          id: 36ebacd1-8f99-4463-8dbd-64681ec9eb2b
+          addr: 172.18.0.1:60318
+          host: localhost:5000
+          method: PUT
+          useragent: useragent
+        actor:
+          name: ""
+        source:
+          addr: localhost:5000
+          instanceid: 971dc071-c7a1-4ad5-85ab-3236e4c26ef7
+    EventEnvelope:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"

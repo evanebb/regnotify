@@ -13,33 +13,33 @@ paths:
     get:
       summary: "Read events"
       parameters:
-        - in: path
+        - in: query
           name: offset
           schema:
             type: string
           required: false
           description: "Offset ID from which to start when retrieving the events, corresponds to the 'id' field in each event. Mostly useful in combination with the 'limit' parameter, in order to iterate through the events in chunks."
-        - in: path
+        - in: query
           name: limit
           schema:
             type: integer
           required: false
           description: "The amount of events to retrieve. Mostly useful in combination with the 'offset' parameter, in order to iterate through the events in chunks."
-        - in: path
+        - in: query
           name: from
           schema:
             type: string
             format: date-time
           required: false
           description: "RFC3339 timestamp used to filter out all events that occurred before this point in time."
-        - in: path
+        - in: query
           name: until
           schema:
             type: string
             format: date-time
           required: false
           description: "RFC3339 timestamp used to filter out all events that occurred after this point in time."
-        - in: path
+        - in: query
           name: searchQuery
           schema:
             type: string
@@ -91,21 +91,21 @@ paths:
       summary: "Stream events using SSE"
       description: "Streams new events to the client using Server-Sent Events."
       parameters:
-        - in: path
+        - in: query
           name: from
           schema:
             type: string
             format: date-time
           required: false
           description: "RFC3339 timestamp used to filter out all events that occurred before this point in time."
-        - in: path
+        - in: query
           name: until
           schema:
             type: string
             format: date-time
           required: false
           description: "RFC3339 timestamp used to filter out all events that occurred after this point in time."
-        - in: path
+        - in: query
           name: searchQuery
           schema:
             type: string

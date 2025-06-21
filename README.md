@@ -15,6 +15,7 @@ To deploy it, run the following:
 ```shell
 git clone https://github.com/evanebb/regnotify.git
 cd regnotify
+make docker
 docker compose up -d
 ```
 

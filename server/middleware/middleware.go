@@ -56,7 +56,7 @@ type flushableWriterWrapper struct {
 
 func (w *flushableWriterWrapper) Flush() {
 	w.wroteHeader = true
-	f := w.basicWriterWrapper.ResponseWriter.(http.Flusher)
+	f := w.ResponseWriter.(http.Flusher)
 	f.Flush()
 }
 
